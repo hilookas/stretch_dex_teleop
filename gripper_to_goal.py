@@ -1,11 +1,8 @@
-import stretch_body.robot as rb
 import numpy as np
 import math
 import time
 from functools import partial
 from scipy.spatial.transform import Rotation
-from stretch_body.robot_params import RobotParams
-from hello_helpers import hello_misc as hm
 import urchin as urdf_loader
 import os
 import simple_ik as si
@@ -15,6 +12,7 @@ import dex_teleop_parameters as dt
 from multiprocessing import shared_memory
 import pprint as pp
 import robot_move as rm
+import robot
 
 
 def load_urdf(file_name):
@@ -99,22 +97,22 @@ class GripperToGoal:
         # Prepare the robot last to avoid errors due to blocking calls
         # associated with other aspects of setting things up, such as
         # initializing SimpleIK.
-        self.robot = rb.Robot()
-        self.robot.startup()
+        self.robot = robot.Robot()
+        # self.robot.startup()
 
-        print('stretch_body file imported =', rb.__file__)
-        transport_version = self.robot.arm.motor.transport.version
-        print('stretch_body using transport version =', transport_version)
+        # print('stretch_body file imported =', stretch_body.robot.__file__)
+        # transport_version = self.robot.arm.motor.transport.version
+        # print('stretch_body using transport version =', transport_version)
 
         self.robot_move = rm.RobotMove(self.robot, speed=robot_speed)
         self.robot_move.print_settings()
 
         self.robot_move.to_configuration(starting_configuration, speed='default')
-        self.robot.push_command()
-        self.robot.wait_command()
+        # self.robot.push_command()
+        # self.robot.wait_command()
 
-        # Set the current mobile base angle to be 0.0 radians.
-        self.robot.base.reset_odometry()
+        # # Set the current mobile base angle to be 0.0 radians.
+        self.robot.base_reset_odometry()
         ##########################################################
 
         self.print_robot_status_thread_timing = False
@@ -126,7 +124,7 @@ class GripperToGoal:
 
     def __del__(self):
         print('GripperToGoal.__del__: stopping the robot')
-        self.robot.stop()
+        # self.robot.stop()
         
         
     def update_goal(self, grip_width, wrist_position, gripper_x_axis, gripper_y_axis, gripper_z_axis):
@@ -184,14 +182,14 @@ class GripperToGoal:
             # extrinsic rotations
             ypr = r.as_euler('ZXY', degrees=False)
             
-            wrist_yaw = hm.angle_diff_rad(ypr[0] + np.pi, 0.0)
+            wrist_yaw = si.angle_diff_rad(ypr[0] + np.pi, 0.0)
             lower_limit, upper_limit = self.wrist_joint_limits['joint_wrist_yaw']
             if (wrist_yaw < lower_limit):
                 wrist_yaw = wrist_yaw + (2.0*np.pi)
                 
             wrist_pitch = ypr[1]
 
-            wrist_roll = hm.angle_diff_rad(ypr[2] + np.pi, 0.0)
+            wrist_roll = si.angle_diff_rad(ypr[2] + np.pi, 0.0)
 
             if self.debug_wrist_orientation: 
                 print('___________')
@@ -281,7 +279,7 @@ class GripperToGoal:
             # convert base odometry angle to be in the range -pi to pi
             # negative is to the robot's right side (counterclockwise)
             # positive is to the robot's left side (clockwise)
-            base_odom_theta = hm.angle_diff_rad(self.robot.base.status['theta'], 0.0)
+            base_odom_theta = si.angle_diff_rad(self.robot.base_get_theta(), 0.0)
             current_mobile_base_angle = base_odom_theta
 
             new_goal_configuration['joint_mobile_base_rotation'] = self.filtered_wrist_position_configuration[0]
