@@ -14,7 +14,7 @@ def save_urdf_file(robot, file_name):
     print('Finished saving')
 
 
-use_on_robot = True
+use_on_robot = False
 
 if use_on_robot:
     import stretch_body.hello_utils as hu
@@ -23,7 +23,7 @@ if use_on_robot:
     controller_params_path = calibration_dir / 'controller_calibration_head.yaml'
     urdf_filename = str(urdf_path.absolute())
 else:
-    urdf_filename = "./stretch.urdf"
+    urdf_filename = "../stretch_urdf/stretch_urdf/SE3/stretch_description_SE3_eoa_wrist_dw3_tool_sg3.urdf"
 
 
 non_fixed_joints = [

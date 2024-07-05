@@ -6,7 +6,7 @@ import subprocess
 import glob
 import sys
 import time
-from usb.core import find as finddev
+import usb
 import argparse
 
 print('cv2.__version__ =', cv2.__version__)
@@ -55,28 +55,30 @@ class Webcam:
         self.show_images = show_images
         self.use_calibration = use_calibration
         
-        camera_devices = get_video_devices()
+        # camera_devices = get_video_devices()
         self.camera_name = camera_name
-        #self.camera_name = 'Arducam OV9782 USB Camera'
+        # #self.camera_name = 'Arducam OV9782 USB Camera'
 
-        first_camera_device = None
-        second_camera_device = None
-        self.camera_device = None
-        for k,v in camera_devices.items():
-            if self.camera_name in k:
-                if first_camera_device is None:
-                    first_camera_device = v[0]
-                else: 
-                    second_camera_device = v[0]
+        # first_camera_device = None
+        # second_camera_device = None
+        # self.camera_device = None
+        # for k,v in camera_devices.items():
+        #     if self.camera_name in k:
+        #         if first_camera_device is None:
+        #             first_camera_device = v[0]
+        #         else: 
+        #             second_camera_device = v[0]
 
-        if use_second_camera:     
-            self.camera_device = second_camera_device
-        else:
-            self.camera_device = first_camera_device
+        # if use_second_camera:     
+        #     self.camera_device = second_camera_device
+        # else:
+        #     self.camera_device = first_camera_device
     
-        assert (self.camera_device is not None), ('ERROR: Webcam did not find the specified camera, self.camera_name = \"' + str(self.camera_name) + '\" Do you have v4l2-ctl installed? Run \"v4l2-ctl --list-devices\" to check your devices and if v4l2-ctl is installed.') 
+        # assert (self.camera_device is not None), ('ERROR: Webcam did not find the specified camera, self.camera_name = \"' + str(self.camera_name) + '\" Do you have v4l2-ctl installed? Run \"v4l2-ctl --list-devices\" to check your devices and if v4l2-ctl is installed.') 
 
-        self.use_logitech_c930 = 'C930e' in self.camera_name
+        self.camera_device = '/dev/video0'
+
+        self.use_logitech = True
         self.first_frame = True
 
         camera_calibration = {}
@@ -101,7 +103,7 @@ class Webcam:
             self.color_camera_info['camera_matrix'] = np.array(camera_calibration['camera_matrix'])
             self.color_camera_info['distortion_coefficients'] = np.array(camera_calibration['distortion_coefficients'])
 
-        if self.use_logitech_c930:
+        if self.use_logitech:
             # Reset the Logitech Webcam C930e to avoid a bug that
             # results in ~5Hz frame rate and incorrect settings after
             # the first use of the camera.
@@ -121,15 +123,16 @@ class Webcam:
             # adduser username plugdev
 
             vendor = 0x046d
-            product = 0x0843
-            dev = finddev(idVendor=vendor, idProduct=product)
-            dev.reset()
+            product = 0x085c
+            for dev in usb.core.find(idVendor=vendor, idProduct=product, find_all=True):
+                dev.reset()
+                print('cam reset')
             time.sleep(1.0)
 
         self.webcam = cv2.VideoCapture(self.camera_device, cv2.CAP_V4L2)
         self.webcam.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         
-        if self.use_logitech_c930:
+        if self.use_logitech:
 
             # Maximum resolutions and framerates for TWO Logitech
             # C930e cameras plugged into the Stretch 3 trunk
@@ -160,7 +163,7 @@ class Webcam:
             # focus_absolute 0x009a090a (int)    : min=0 max=255 step=5 default=0 value=0 flags=inactive
             # focus_automatic_continuous 0x009a090c (bool)   : default=1 value=1
 
-            exposure_time = 200 #120 #150 #200 #250
+            exposure_time = 250 #120 #150 #200 #250
             webcam_command_line_configuration = 'v4l2-ctl -d ' + self.camera_device + ' -c auto_exposure=1,exposure_time_absolute=' + str(exposure_time) + ',focus_automatic_continuous=0'
             subprocess.check_call(webcam_command_line_configuration, shell=True)
 
