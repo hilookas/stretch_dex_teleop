@@ -1,7 +1,12 @@
+import rclpy.node
+import sensor_msgs.msg
 
 class Robot():
     def __init__(self):
-        pass
+        rclpy.init()
+        self.node = rclpy.node.Node("teleop")
+        
+        self.joint_state_publisher = self.node.create_publisher(sensor_msgs.msg.JointState, "/joint_states", 10)
 
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/base.py
     def base_reset_odometry(self):
@@ -44,6 +49,15 @@ class Robot():
         """
         print(f"lift_move_to: {x_m}")
 
+        msg = sensor_msgs.msg.JointState()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
+        
+        msg.name = [ "joint_lift" ]
+        msg.position = [ float(x_m) ]
+
+        self.joint_state_publisher.publish(msg)
+        
+
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/prismatic_joint.py
     def arm_move_to(self, x_m, v_m=None, a_m=None, stiffness=None, contact_thresh_pos_N=None, contact_thresh_neg_N=None,
                 req_calibration=True, contact_thresh_pos=None, contact_thresh_neg=None):
@@ -60,6 +74,14 @@ class Robot():
         """
         print(f"arm_move_to: {x_m}")
 
+        msg = sensor_msgs.msg.JointState()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
+        
+        msg.name = [ "joint_arm_l0", "joint_arm_l1", "joint_arm_l2", "joint_arm_l3",  ]
+        msg.position = [ float(x_m)/4, float(x_m)/4, float(x_m)/4, float(x_m)/4 ]
+
+        self.joint_state_publisher.publish(msg)
+
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/end_of_arm.py
     def wrist_yaw_move_to(self, x_r, v_r=None, a_r=None):
         """
@@ -69,6 +91,14 @@ class Robot():
         a_r: acceleration for trapezoidal motion profile (rad/s^2)
         """
         print(f"wrist_yaw_move_to: {x_r}")
+
+        msg = sensor_msgs.msg.JointState()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
+        
+        msg.name = [ "joint_wrist_yaw" ]
+        msg.position = [ float(x_r) ]
+
+        self.joint_state_publisher.publish(msg)
 
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/end_of_arm.py
     def wrist_pitch_move_to(self, x_r, v_r=None, a_r=None):
@@ -80,6 +110,14 @@ class Robot():
         """
         print(f"wrist_pitch_move_to: {x_r}")
 
+        msg = sensor_msgs.msg.JointState()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
+        
+        msg.name = [ "joint_wrist_pitch" ]
+        msg.position = [ float(x_r) ]
+
+        self.joint_state_publisher.publish(msg)
+
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/end_of_arm.py
     def wrist_roll_move_to(self, x_r, v_r=None, a_r=None):
         """
@@ -89,6 +127,12 @@ class Robot():
         a_r: acceleration for trapezoidal motion profile (rad/s^2)
         """
         print(f"wrist_roll_move_to: {x_r}")
+
+        msg = sensor_msgs.msg.JointState()
+        msg.header.stamp = self.node.get_clock().now().to_msg()
+        
+        msg.name = [ "joint_wrist_roll" ]
+        msg.position = [ float(x_r) ]
 
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/end_of_arm.py
     def gripper_move_to(self, x_r, v_r=None, a_r=None):
