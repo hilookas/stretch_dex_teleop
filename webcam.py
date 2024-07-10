@@ -76,7 +76,7 @@ class Webcam:
     
         # assert (self.camera_device is not None), ('ERROR: Webcam did not find the specified camera, self.camera_name = \"' + str(self.camera_name) + '\" Do you have v4l2-ctl installed? Run \"v4l2-ctl --list-devices\" to check your devices and if v4l2-ctl is installed.') 
 
-        self.camera_device = '/dev/video0'
+        self.camera_device = '/dev/video1'
 
         self.use_logitech = True
         self.first_frame = True

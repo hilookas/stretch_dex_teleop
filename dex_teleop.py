@@ -7,6 +7,7 @@ import goal_from_teleop as gt
 import dex_teleop_parameters as dt
 import pprint as pp
 import loop_timer as lt
+import scipy.spatial
 
 
 if __name__ == '__main__':
@@ -74,9 +75,26 @@ if __name__ == '__main__':
             msg.pose.position.x = goal_dict["wrist_position"][0]
             msg.pose.position.y = goal_dict["wrist_position"][1]
             msg.pose.position.z = goal_dict["wrist_position"][2]
-            # msg.pose.orientation.x = goal_dict["gripper_z_axis"]
-            # msg.pose.orientation.y = goal_dict["gripper_z_axis"]
-            # msg.pose.orientation.z = goal_dict["gripper_z_axis"]
+
+            # Use the gripper pose marker's orientation to directly control the robot's wrist yaw, pitch, and roll. 
+            aruco_rotation = np.zeros((3, 3))
+
+            aruco_rotation[:,0] = goal_dict["gripper_x_axis"]
+            aruco_rotation[:,1] = goal_dict["gripper_y_axis"]
+            aruco_rotation[:,2] = goal_dict["gripper_z_axis"]
+
+            r = scipy.spatial.transform.Rotation.from_matrix(aruco_rotation)
+            # capital letters represent intrinsic
+            # rotations, lowercase letters represent
+            # extrinsic rotations
+            # ypr = r.as_euler('ZXY', degrees=False)
+            (x, y, z, w) = r.as_quat()
+
+            msg.pose.orientation.x = x
+            msg.pose.orientation.y = y
+            msg.pose.orientation.z = z
+            msg.pose.orientation.w = w
+
             pub.publish(msg)
             if print_goal:
                 print('goal_dict =')
