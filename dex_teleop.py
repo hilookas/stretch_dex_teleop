@@ -60,21 +60,26 @@ if __name__ == '__main__':
     print_goal = True
     
     from robot import ros_node
-    import geometry_msgs.msg
+    # import geometry_msgs.msg
+    import fashionstar_msgs_interfaces.msg
 
-    pub = ros_node.create_publisher(geometry_msgs.msg.PoseStamped, "/goal_pose", 10)
+    # pub = ros_node.create_publisher(geometry_msgs.msg.PoseStamped, "/goal_pose", 10)
+
+    pub2 = ros_node.create_publisher(fashionstar_msgs_interfaces.msg.CartesianCommand, "/puppet_left/cartesian_commands", 10)
+
+    # pub3 = ros_node.create_publisher(geometry_msgs.msg.PoseStamped, "/goal_pose2", 10)
     
     while True:
         loop_timer.start_of_iteration()
         markers = webcam_aruco_detector.process_next_frame()
         goal_dict = goal_from_markers.get_goal_dict(markers)
         if goal_dict:
-            msg = geometry_msgs.msg.PoseStamped()
-            msg.header.stamp = ros_node.get_clock().now().to_msg()
-            msg.header.frame_id = "base_link"
-            msg.pose.position.x = goal_dict["wrist_position"][0]
-            msg.pose.position.y = goal_dict["wrist_position"][1]
-            msg.pose.position.z = goal_dict["wrist_position"][2]
+            # msg = geometry_msgs.msg.PoseStamped()
+            # msg.header.stamp = ros_node.get_clock().now().to_msg()
+            # msg.header.frame_id = "base_link"
+            # msg.pose.position.x = goal_dict["wrist_position"][0]
+            # msg.pose.position.y = goal_dict["wrist_position"][1]
+            # msg.pose.position.z = goal_dict["wrist_position"][2]
 
             # Use the gripper pose marker's orientation to directly control the robot's wrist yaw, pitch, and roll. 
             aruco_rotation = np.zeros((3, 3))
@@ -83,19 +88,58 @@ if __name__ == '__main__':
             aruco_rotation[:,1] = goal_dict["gripper_y_axis"]
             aruco_rotation[:,2] = goal_dict["gripper_z_axis"]
 
-            r = scipy.spatial.transform.Rotation.from_matrix(aruco_rotation)
-            # capital letters represent intrinsic
-            # rotations, lowercase letters represent
-            # extrinsic rotations
-            # ypr = r.as_euler('ZXY', degrees=False)
-            (x, y, z, w) = r.as_quat()
+            # 他们的坐标系定义跟我们不大一样，他们是y朝前，我们是x朝前
+            # 所以这里又叠了一个坐标系转换问题解决
+            r = scipy.spatial.transform.Rotation.from_matrix(aruco_rotation) * scipy.spatial.transform.Rotation.from_euler('z', 90, degrees=True)
 
-            msg.pose.orientation.x = x
-            msg.pose.orientation.y = y
-            msg.pose.orientation.z = z
-            msg.pose.orientation.w = w
+            # (x, y, z, w) = r.as_quat()
 
-            pub.publish(msg)
+            # msg.pose.orientation.x = x
+            # msg.pose.orientation.y = y
+            # msg.pose.orientation.z = z
+            # msg.pose.orientation.w = w
+
+            # pub.publish(msg)
+
+            # Notice: The cord of hello robot is different from normal robot hand
+            # Hello robot have a x-axis point to the left side of manipulation (See comment below)
+            # we need to transform this to the normal way
+
+            def create_transform(rotation, translation):
+                transform = np.eye(4)
+                transform[:3, :3] = rotation.as_matrix()
+                transform[:3, 3] = translation
+
+                return transform
+
+            T_rel_to_hello_robot = create_transform(r, np.array(goal_dict["wrist_position"]))
+
+            T_hello_robot_rel_to_arm = create_transform(scipy.spatial.transform.Rotation.from_euler('z', 90, degrees=True), np.array([0, 0, -0.5]))
+            
+            T_rel_to_arm = np.matmul(T_hello_robot_rel_to_arm, T_rel_to_hello_robot)
+
+            print(T_rel_to_arm)
+            
+            msg2 = fashionstar_msgs_interfaces.msg.CartesianCommand()
+            msg2.header.stamp = ros_node.get_clock().now().to_msg()
+            x_move, y_move, z_move = T_rel_to_arm[:3,3]
+            msg2.pose.position.x = x_move
+            msg2.pose.position.y = y_move
+            msg2.pose.position.z = z_move
+            (x, y, z, w) = scipy.spatial.transform.Rotation.from_matrix(T_rel_to_arm[:3,:3]).as_quat()
+            msg2.pose.orientation.x = x
+            msg2.pose.orientation.y = y
+            msg2.pose.orientation.z = z
+            msg2.pose.orientation.w = w
+            msg2.gripper_angle = goal_dict["grip_width"]
+            pub2.publish(msg2)
+            
+            # msg3 = geometry_msgs.msg.PoseStamped()
+            # msg3.header.stamp = ros_node.get_clock().now().to_msg()
+            # msg3.header.frame_id = "puppet_left/base_link"
+            # msg3.pose = msg2.pose
+            # pub3.publish(msg3)
+
             if print_goal:
                 print('goal_dict =')
                 pp.pprint(goal_dict)
