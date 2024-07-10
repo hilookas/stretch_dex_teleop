@@ -5,7 +5,10 @@ class Robot():
     def __init__(self):
         rclpy.init()
         self.node = rclpy.node.Node("teleop")
-        
+
+        global ros_node
+        ros_node = self.node
+
         self.joint_state_publisher = self.node.create_publisher(sensor_msgs.msg.JointState, "/joint_states", 10)
 
     # https://github.com/hello-robot/stretch_body/blob/master/body/stretch_body/base.py

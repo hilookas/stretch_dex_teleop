@@ -56,13 +56,28 @@ if __name__ == '__main__':
 
     loop_timer = lt.LoopTimer()
     print_timing = False
-    print_goal = False
+    print_goal = True
+    
+    from robot import ros_node
+    import geometry_msgs.msg
+
+    pub = ros_node.create_publisher(geometry_msgs.msg.PoseStamped, "/goal_pose", 10)
     
     while True:
         loop_timer.start_of_iteration()
         markers = webcam_aruco_detector.process_next_frame()
         goal_dict = goal_from_markers.get_goal_dict(markers)
         if goal_dict:
+            msg = geometry_msgs.msg.PoseStamped()
+            msg.header.stamp = ros_node.get_clock().now().to_msg()
+            msg.header.frame_id = "base_link"
+            msg.pose.position.x = goal_dict["wrist_position"][0]
+            msg.pose.position.y = goal_dict["wrist_position"][1]
+            msg.pose.position.z = goal_dict["wrist_position"][2]
+            # msg.pose.orientation.x = goal_dict["gripper_z_axis"]
+            # msg.pose.orientation.y = goal_dict["gripper_z_axis"]
+            # msg.pose.orientation.z = goal_dict["gripper_z_axis"]
+            pub.publish(msg)
             if print_goal:
                 print('goal_dict =')
                 pp.pprint(goal_dict)

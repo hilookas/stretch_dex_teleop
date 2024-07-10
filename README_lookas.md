@@ -15,4 +15,7 @@ ros2 run robot_state_publisher robot_state_publisher ~/ros2_ws/non_ros_src/stret
 
 # 调参界面
 ros2 run joint_state_publisher_gui joint_state_publisher_gui
+
+# Rviz
+ros2 run rviz2 rviz2
 ```
